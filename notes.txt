@@ -1,0 +1,117 @@
+BACKSTORY! først api la ned, bygge på nytt.
+
+RapidAPI
+https://rapidapi.com/logicbuilder/api/tiktok?
+Tuktuk App key: 3934aad49fmsh623d0b111b22606p152c63jsnf6b730bddf41
+#dinretning hashtag/challenge id: 1684318964875265 (not working) 1684318964875265
+
+1. get list of tiktoks by hashtag: https://rapidapi.com/logicbuilder/api/tiktok?endpoint=apiendpoint_4bbcbcca-6c01-41d5-a53d-4eaa83926fb3
+1a get/store fields:
+    Author: id(?), uniqueId,
+    Details: create_time, description NÆ MOVE TO 2b
+    Media(video): cover, originCover, dynamicCover (all 3 lifetime, 5-6 hours) cover my be bigger than origin strangly enough
+    Video: video_id: ex: "6899721049131224322" !NB Muy importante!
+        From this save video/tiktok-url:
+1b generate some kind of link/embed to preview tiktok?
+
+    ex: https://www.tiktok.com/oembed?url=https://www.tiktok.com/@tiktok/video/6899721049131224322
+1c when if publish: step 2
+1d From Sanity, run update every 6-24? createOrskip.
+    Make tiktok in Sanity, reference this in 1c/2.
+
+
+SAVE A LOT OF API CALLS BY DOING #1 Properly!
+
+2. use videoId from 1 to get videodata https://rapidapi.com/logicbuilder/api/tiktok?endpoint=apiendpoint_6f87fee4-3304-4ed9-9191-7bd29eb1feab
+    param videourl = https://www.tiktok.com/@tiktok/video/{videoId}
+
+2a "videoUrlNoWaterMark" -> CloudFlare Stream via cURL (https://developers.cloudflare.com/stream/uploading-videos/upload-via-link)
+    (webhook success or error) push that to sanity
+    ex link https://v19.tiktokcdn.com/51da5ac6dbe6e357a14d9b9bbe4a79bb/5fc86424/video/tos/alisg/tos-alisg-pve-0037c001/ebeced53f980416cbb60d28c3904f31e/?a=1180&br=5762&bt=2881&cd=0%7C0%7C0&cr=0&cs=0&dr=0&ds=6&er=&l=202012022205410101150040751D0724C7&lr=&mime_type=video_mp4&qs=0&rc=Mzt1eTZvOWlleTMzaTczM0ApNzU2Zzs4PDszN2doZDtoPGdiMl5uMnAuay1fLS1hMTRzc2IuLWAuMTJfNjAuLy9gNmE6Yw%3D%3D&vl=&vr=
+    don't know lifetime, this (tied to publishninh) must happen shortly after fetching new tiktoks
+2b get/store fields
+    If we ommit step1, get all user details here.
+    User: avatar (exp approx 24 hours),nickname,
+    imageUrl: (thumb) -> (exp approx 24 hours) prob not needed, cloudflare handles it (diff ratio thou)
+        obs differs from Media in step 1. covers (deafult,dynamic,origin) -> better ratio, better size (50-75%!).
+    videoUrlNoWaterMark, store as ref, evnt exp not known
+    createTime -> we'll probably sort by this.
+    text
+    id, we've allready got it, ey
+    combine, compress and queue creation
+
+NB! We can ommit step 1 by manually tracking the tag
+1 https://www.tiktok.com/tag/dinretning
+2 Copy link from video we want: https://www.tiktok.com/@naturlighundelivub/video/6899788658686053633
+3 (In Sanity): Choose cat and start the process at step 2
+
+Budget:
+
+TECH
+UnOfficial TikTok API pricing: 20$ month / 10000 requests (hard limit)
+Cloudflare Stream Price: Storage: $5.00 per 1,000 minutes (regardless of how many duclipactes(diff encoding)), Streaming: $1.00 per 1,000 minutes, player/processing free
+Sanity start free: API CDN Requests per month 500k, API Requests per month 100k, Assets 5GB, Bandwidth per month 10GB, Documents 10k
+Gatsby Cloud / $20 month (unneeded?)
+Vercel free / $20 month
+
+WORK
+Halfway there?
+closing in on 80 hours!
+
+
+EX (Fetch step1)
+
+fetch("https://tiktok.p.rapidapi.com/live/hashtag/feed?name=dinretning", {
+	"method": "GET",
+	"headers": {
+		"x-rapidapi-key": "3934aad49fmsh623d0b111b22606p152c63jsnf6b730bddf41",
+		"x-rapidapi-host": "tiktok.p.rapidapi.com"
+	}
+})
+.then(response => {
+	console.log(response);
+})
+.catch(err => {
+	console.error(err);
+});
+
+EX (Fetch step2)
+
+fetch("https://tiktok.p.rapidapi.com/live/post/meta/v2?video=h
+
+", {
+	"method": "GET",
+	"headers": {
+		"x-rapidapi-key": "3934aad49fmsh623d0b111b22606p152c63jsnf6b730bddf41",
+		"x-rapidapi-host": "tiktok.p.rapidapi.com"
+	}
+})
+.then(response => {
+	console.log(response);
+})
+.catch(err => {
+	console.error(err);
+});
+
+
+Tanker:
+
+Det kan hende vi ikke trenger to tiktikstømmer
+
+Bare pub om kat valgt (madatory) - OG video er 100 hos cloudflare…
+
+######################################### bucket
+
+"cover":"https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/9f37ddc2b04249e18f6419c49964df1f?x-expires=1606971600&x-signature=MI1yfAjJMO%2BGhm0V8bmfYxYsz3k%3D"
+"originCover":"https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/46db1a6072564a0dacdf14869cbdbe32_1606466497?x-expires=1606971600&x-signature=4mHJk8WgICfMKfTKbzovXBttxWQ%3D"
+"dynamicCover":"https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/409972b29dca4838b5fdfb4095280c97_1606466497?x-expires=1606971600&x-signature=BT2tEvsBG3i16cmM82XJWQUs7yA%3D"
+
+"covers":{3 items
+"default":"https://p16-sign-sg.tiktokcdn.com/aweme/300x400/tos-alisg-p-0037/9f37ddc2b04249e18f6419c49964df1f.webp?x-expires=1606971600&x-signature=3rN2A9jxjGuN2tpIaKvcST6vRsw%3D"
+"dynamic":"https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/409972b29dca4838b5fdfb4095280c97_1606466497?x-expires=1606971600&x-signature=BT2tEvsBG3i16cmM82XJWQUs7yA%3D"
+"origin":"https://p16-sign-sg.tiktokcdn.com/aweme/300x400/tos-alisg-p-0037/9f37ddc2b04249e18f6419c49964df1f.webp?x-expires=1606971600&x-signature=3rN2A9jxjGuN2tpIaKvcST6vRsw%3D"
+}
+
+"cover":"https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/41b4d1423a364d1ca35b4dd51248ee12?x-expires=1607040000&x-signature=OD6D3vRmCheblcZYTBtKEPW2lsQ%3D"
+"originCover":"https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/2918bde420494b73b819cd0a127668b4_1607001802?x-expires=1607040000&x-signature=Dw706azfO1jWUnKafuF7jfJCrN0%3D"
+"dynamicCover":"https://p16-sign-sg.tiktokcdn.com/obj/tos-alisg-p-0037/96160d0c2e7a4db0bfc855a40f4e3769_1607001804?x-expires=1607040000&x-signature=XB7dZgjryvk4uIda6rgpHkk9u44%3D"
